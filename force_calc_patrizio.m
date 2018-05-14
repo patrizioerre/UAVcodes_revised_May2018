@@ -234,7 +234,7 @@ L=sum(dp.*repmat(dl_x,Nx,1)*dly.*cos(aoa).*cos(dih));
 
 %% Lift
 
-Lift=sum(L)                      % total lift
+Lift=sum(L);                      % total lift
 
 %% Lift distribution?
 

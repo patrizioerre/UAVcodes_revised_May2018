@@ -1,7 +1,7 @@
 % simplified unsteady 3D wing lifting line method by B. Davoudi
 % Aerospace Engineering Department, University of Michigan 5/8/2018
 % updated to incorporate the rudder 9/7/2017
-function [G,Am_wing,A,a,a_d,w_ind_drag]=fast_steady_tail_rudder_patrizio(x,y,z,xcol,ycol,zcol,n,dl_x,dly,Nxw,Nxt,Nxr,Nyw,Nyt,Nyr,u,alpha,Lam,dih,b) %codegen
+function [G,Am_wing,A,a,a_d,w_ind_drag]=fast_steady_tail_rudder_patrizio(x,y,z,xcol,ycol,zcol,n,dl_x,dly,dlw,Nxw,Nxt,Nxr,Nyw,Nyt,Nyr,u,alpha,Lam,dih,b) %codegen
 % genrating the wake for a steady flight
 % finding the steady solution with the panel method
 
@@ -12,6 +12,11 @@ a1=zeros(2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,3);
 a1_d=zeros(2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,3);
 a=zeros(3,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr);
 a_d=zeros(3,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr);
+
+
+
+% usnteady case addition
+Awake_first_wake_panel=zeros(2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr);
 
 %for i=1:2*Nx*Ny
 
@@ -102,6 +107,12 @@ for i=1:2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr  % total of the panels in the wing and wake
         theta=0;
         [a1(i,2*(Nxw-1)*Nyw+j,:),Awake(i,2*(Nxw-1)*Nyw+j)]=vortexring(n(:,i),20*b,dly(1),0,Lam(Nxw,j),dih(Nxw,j),xcol1,ycol1,zcol1,xw1,yw1,zw1,1,theta);
         [a1_d(i,2*(Nxw-1)*Nyw+j,:),~]=vortexring_drag(n(:,i),20*b,dly(1),0,Lam(Nxw,j),dih(Nxw,j),xcol1,ycol1,zcol1,xw1,yw1,zw1,1,theta);
+        
+        % this is only unsteady case, first wake panel extension effect on
+        % the A matrix 
+        % dlw=0.5*min(dl_x)*Nxw * 0.1 ;
+        [~,Awake_first_wake_panel(i,2*(Nxw-1)*Nyw+j)]=vortexring(n(:,i),dlw,dly(1),0,Lam(Nxw,j),dih(Nxw,j),xcol1,ycol1,zcol1,xw1,yw1,zw1,1,theta);
+    
     end
     
     % tail:
@@ -117,7 +128,7 @@ for i=1:2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr  % total of the panels in the wing and wake
     
     end
     
-        % rudder:
+    % rudder:
     for j=1:Nyr
 
         xw1=x(Nxt+Nxw+Nxr,j)+dl_x(2*Nyw+2*Nyt+j)*cos(alpha(Nxt+Nxw+Nxr,j));
@@ -134,8 +145,11 @@ end
 A=Awing+Awake;
 
 % the inverse matrix A that will be used in the unsteady solution
+% unsteady case this also include the first row of the wake
+Am_wing=inv(Awing+Awake_first_wake_panel);
 
-Am_wing=inv(Awing);
+% steady case
+% Am_wing=inv(Awing);
 
 U=repmat(u',1,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr);
 

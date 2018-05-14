@@ -3,7 +3,7 @@
 % "w" refers to wing, "t" refers to tail, "r" refres to rudder
 
 tic
-clc; clear all;close all
+clc; clear all;
 Nxw=4;Nxt=0;               % chordwise panel per hald wing
 Nyw=9;Nyt=0;               % spanwise panel per hald wing
 Nxr=0;Nyr=0;
@@ -15,7 +15,7 @@ br=bt;
 trw=1.8;trt=0;trr=0;        % taper ratio
 Lam=degtorad(0);             % sweep angle, backward swept, positive
 dih=degtorad(0);             % dihedral angle defined at the c/4
-aoa=degtorad(7);             % angle of attack
+aoa=degtorad(0);             % angle of attack
 uinf=1;                      % incidence velocity
 u=uinf*[1 0 0];              % incidence velocity vector
 
@@ -81,12 +81,15 @@ plot(yw(1,:),cL);hold on;xlabel('span');ylabel('C_l');grid minor;
 %% Wake extention from TE of physical surfaces
 
 %time step
-dt=0.5*min(dl_xw)*Nxw/uinf;   %%%%%%%%%%%%%%%%%%%%%% 1/4
+dt=0.5*min(dl_xw)*Nxw/uinf * 0.5;   %%%%%%%%%%%%%%%%%%%%%% 1/4
+
+% size of the wake panels
+dlw=dt*uinf;
 
 % maximum simulation time
-tmax=floor(bw/(uinf*dt))*2; % arbitary
+tmax=floor(2*bw/(uinf*dt)) ; % arbitary (twice of the wing span)
 
-wake_length=floor(bw/(uinf*dt)); % this is long enough
+wake_length=tmax; % this is long enough, wake after this length will be ignored
 
 for i=1:wake_length
     xww(i,:)=xw(Nxw,:)+dl_x(1:2*Nyw).*cos(alphaw(end,:))+uinf*(i-1)*dt;
@@ -116,7 +119,8 @@ axis('equal');
 
 %% unsteady solution, for instance: response to a gust
 
-% the initial wake vortex strength obtained by steady solution
+% the initial wake vortex strength obtained by steady solution -- starting
+% the second wake row
 Gww=repmat(Gs(1+2*(Nxw-1)*Nyw:2*Nxw*Nyw),wake_length,1);
 %Gwt=repmat(Gs(1+2*Nxw*Nyw+2*(Nxt-1)*Nyt:2*Nxt*Nyt+2*Nxw*Nyw),floor(tmax/2),1);
 %Gwr=repmat(Gs(1+2*Nxw*Nyw+2*Nxt*Nyt+(Nxr-1)*Nyr:2*Nxt*Nyt+2*Nxw*Nyw+Nxr*Nyr),floor(tmax/2),1);
@@ -135,7 +139,12 @@ dih=degtorad(zeros(Nxw,2*Nyw));
 Lam=degtorad(ones(Nxw,2*Nyw));
 alpha=degtorad(7*ones(Nxw,2*Nyw));
 
-
+% for sudden angle of attack increase:
+% t=1 steady, t=2 suddenly an angle off attack is set, and wing moves u*dt
+% (one row of the wake), which is taken care of using A,_wing below, t=3,
+% there are two panels in the wake with non-zero wake values, the closer
+% one is handles with Am_wing and the second panel is handles using the
+% "wake of the physical surfaces"....and do on and so forth
 for t=1:tmax
     t
     %    xvor=xvor+uinf*dt;
@@ -143,15 +152,6 @@ for t=1:tmax
     %% defining the new geometry and new wake
     
     if t>1
-        
-        % shifting the wake one step downstream
-        
-        for q1=2:wake_length
-                
-                xww(q1,:)=xww(q1-1,:)+uinf*dt;
-                yww(q1,:)=yww(q1-1,:);
-                zww(q1,:)=zww(q1-1,:);
-        end
         
         % here you can use your new inputs for angles and positions to have
         % your new geometry: Lam,dih,aoa? you have them from you structure
@@ -172,15 +172,26 @@ for t=1:tmax
         Lam=degtorad(zeros(Nxw,2*Nyw));
         alpha=degtorad(7*ones(Nxw,2*Nyw));
         
-        [~,Am_wing,~,~,~,~]=fast_steady_tail_rudder_patrizio(x,y,z,xcol,ycol,zcol,n,dl_x,dly,Nxw,Nxt,Nxr,Nyw,Nyt,Nyr,u,alpha,Lam,dih,bw);
+        % Am_wing has the effect of the first wake row already taken into
+        % consideration
+        [G22,Am_wing,~,~,~,~]=fast_steady_tail_rudder_patrizio(x,y,z,xcol,ycol,zcol,n,dl_x,dly,dlw,Nxw,Nxt,Nxr,Nyw,Nyt,Nyr,u,alpha,Lam,dih,bw);
         
+        % shifting the wake one step downstream
+        
+        for q1=wake_length-1:-1:1
+                
+                xww(q1+1,:)=xww(q1,:)+uinf*dt;
+                yww(q1+1,:)=yww(q1,:);
+                zww(q1+1,:)=zww(q1,:);
+        end
         % this is the fist row of panels of the wake which is newly obtained shed from Trailing Edge -- you
-        % should update alphaw and dih
+        % should update alpha and dih -- this has to come after the
+        % shifting ^^
         
-
              xww(1,:)=x(Nxw,:)+dl_x.*cos(alpha(Nxw,:));
              yww(1,:)=y(Nxw,:);
              zww(1,:)=z(Nxw,:)-dl_x.*sin(alpha(Nxw,:)).*cos(dih(Nxw,:));
+       
 
     end
     
@@ -192,6 +203,7 @@ for t=1:tmax
         % once the panels on the wing are considered, tail panels are the next
         % starting from 2*Nxw*Nyw+1 to 2*Nxw*Nyw+2*Nxt*Nyt
         %% physical surfaces (wing, tail and rudder)
+        % collocation points indices
         % for wing
         if i<=2*Nxw*Nyw
             index1col=ceil(i/(2*Nyw));
@@ -220,14 +232,20 @@ for t=1:tmax
         
         %% wake of physical surfaces
         % wing wake
-        Nww=wake_length;           % number of wing wake panels
+        Nww=wake_length-1;           % number of wing wake panels excluding the first panel
         wake2vw=0;a2w=0;
-        
+        %%%% add swipe and dihedra to wake!!!! ---done
+        % note that the first wake row has already been considered in the
+        % Am_wing, j=1 belongs to the second row wake
         for j=1:2*Nww*Nyw
-            index1ww=ceil(j/(2*Nyw));
-            index2ww=j-(2*Nyw)*(index1ww-1);
+            % j=1:2*Nww*Nyw
+            % ...+1 exist because we start the considering the second
+            % row -- first row already was considered. similarly added a -1
+            % to index2ww keep things right
+            index1ww=ceil(j/(2*Nyw))          +1;
+            index2ww=j-(2*Nyw)*(index1ww-1    -1);
             xw1=xww(index1ww,index2ww);      yw1=yww(index1ww,index2ww);      zw1=zww(index1ww,index2ww);
-            [a1w,wake1vw]=vortexring(n(:,i),uinf*dt,dly(1),0,0,0,xcol1,ycol1,zcol1,xw1,yw1,zw1,Gww(j),0);
+            [a1w,wake1vw]=vortexring(n(:,i),uinf*dt,dly(1),0,Lam(Nxw,index2ww),dih(Nxw,index2ww),xcol1,ycol1,zcol1,xw1,yw1,zw1,Gww(j),0);
             wake2vw=wake2vw+wake1vw;
             a2w=a2w+a1w;
         end
@@ -240,7 +258,7 @@ for t=1:tmax
             index1wt=ceil(j/(2*Nyt));
             index2wt=j-(2*Nyt)*(index1wt-1);
             xw1=xwt(index1wt,index2wt);      yw1=ywt(index1wt,index2wt);      zw1=zwt(index1wt,index2wt);
-            [a1t,wake1vt]=vortexring(n(:,i),uinf*dt,dly(2),0,0,0,xcol1,ycol1,zcol1,xw1,yw1,zw1,Gwt(j),0);
+            [a1t,wake1vt]=vortexring(n(:,i),uinf*dt,dly(2),0,Lam(Nxt+Nxw,index2wt),dih(Nxt+Nxw,index2wt),xcol1,ycol1,zcol1,xw1,yw1,zw1,Gwt(j),0);
             wake2vt=wake2vt+wake1vt;
             a2t=a2t+a1t;
         end
@@ -254,13 +272,12 @@ for t=1:tmax
             index1wr=ceil(j/(Nyr));
             index2wr=j-(Nyr)*(index1wr-1);
             xw1=xwr(index1wr,index2wr);      yw1=ywr(index1wr,index2wr);      zw1=zwr(index1wr,index2wr);
-            [a1r,wake1vr]=vortexring(n(:,i),uinf*dt,dly(3),0,0,0,xcol1,ycol1,zcol1,xw1,yw1,zw1,Gwr(j),90);
+            [a1r,wake1vr]=vortexring(n(:,i),uinf*dt,dly(3),0,Lam(Nxt+Nxw+Nxr,index2wr),0,xcol1,ycol1,zcol1,xw1,yw1,zw1,Gwr(j),90);
             wake2vr=wake2vr+wake1vr;
             a2r=a2r+a1r;
         end
         
-        %%
-        
+        %%        
         waken(1,i)=wake2vw+wake2vt+wake2vr;        % total effect of the wakes on the panel i
         %% vortex induced effect
         %         [Vv,Vvn(i)]=vortexline(n(:,i),xcol1,ycol1,zcol1,xvor,yvor,zvor,xvor,yvor+bw/16,zvor,Gv);
@@ -270,13 +287,15 @@ for t=1:tmax
     % RHS
     % RHSn=dot(-repmat(u',1,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr),n)'-waken'-Vvn';
     
+    % waken has the effect of the wake of wing on the wing
+    
     RHSn=dot(-repmat(u',1,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr),n)'-waken';
     
     % RHSn=dot(-repmat(u',1,2*Nx*Ny),n)'-waken'-reshape(Vv,2*Nx*Ny,1);
     G(:,t)=Am_wing*RHSn;    % vorticity on the wing
     
     % passing the each row of the wake to the next level
-    for i=1:tmax-1
+    for i=tmax-1:-1:1
         Gww(1+2*i*Nyw:2*(i+1)*Nyw)=Gww(1+2*(i-1)*Nyw:2*i*Nyw) ;
         if i <=tmax/2-1   % size of the tail wake
             %    Gwt(1+2*i*Nyt:2*(i+1)*Nyt)=Gwt(1+2*(i-1)*Nyt:2*i*Nyt) ;
@@ -284,7 +303,10 @@ for t=1:tmax
         end
     end
     
+
+    % passing the TE vortex (which is the same as first wake row) to the second row of the wake
     Gww(1:2*Nyw)= G(1+2*(Nxw-1)*Nyw:2*Nxw*Nyw,t);
+
     %    Gwt(1:2*Nyt)= G(1+2*Nxw*Nyw+2*(Nxt-1)*Nyt:2*Nxw*Nyw+2*Nxt*Nyt,t);
     %    Gwr(1:Nyr)= G(1+2*Nxw*Nyw+2*Nxt*Nyt+(Nxr-1)*Nyr:2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,t);
     
@@ -293,7 +315,7 @@ for t=1:tmax
     %[cLnewvr(t),cl_sectionr(:,t),dpr(:,:,t)]=force_calc(Nxr,Nyr/2,a(:,1+2*Nxw*Nyw+2*Nxt*Nyt:2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr),G(1+2*Nxw*Nyw+2*Nxt*Nyt:2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,:),Gs(1+2*Nxw*Nyw+2*Nxt*Nyt:2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr,1),t,dt,Sr,dl_x(1+2*Nyw+2*Nyt:2*(Nyw+Nyt)+Nyr),dly(3),uinf,0,Lam,0,0,aoar);
     %force_calc(Nxw,Nyw,a(:,1:2*Nxw*Nyw),a_d(:,1:2*Nxw*Nyw),w_ind_drag(1:2*Nxw*Nyw),bw,G(1:2*Nxw*Nyw,:),G(1:2*Nxw*Nyw,1),t,dt,Sw,dl_x(1:2*Nyw),dly(1),norm(u,2),aoa,Lam,dih,aoaf_Lw,aoaf_Rw)
     
-    [cLnewv(:,t),Liftw,Dragw,dp(:,:,t),~,rollw,yaww]=force_calc_patrizio(Nxw,Nyw,a(:,1:2*Nxw*Nyw),a_d(:,1:2*Nxw*Nyw),w_ind_drag(1:2*Nxw*Nyw),bw,G(1:2*Nxw*Nyw,:),Gs(1:2*Nxw*Nyw,1),t,dt,Sw,dl_x(1:2*Nyw),dly(1),norm(u,2),alpha,Lam,dih,aoaf_Lw,aoaf_Rw,0);
+    [cLnewv(:,t),Liftw(t),Dragw,dp(:,:,t),~,rollw,yaww]=force_calc_patrizio(Nxw,Nyw,a(:,1:2*Nxw*Nyw),a_d(:,1:2*Nxw*Nyw),w_ind_drag(1:2*Nxw*Nyw),bw,G(1:2*Nxw*Nyw,:),Gs(1:2*Nxw*Nyw),t,dt,Sw,dl_x(1:2*Nyw),dly(1),norm(u,2),alpha,Lam,dih,aoaf_Lw,aoaf_Rw,0);
     %
     
     %[cLnewvt(:,t),Liftt,Dragt,dpt(:,:,t),~,rollt,yawt]=force_calc(Nxt,Nyt,a(:,1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt),a_d(:,1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt),w_ind_drag(1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt),bt,G(1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt,:),Gs(1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt,1),t,dt,St,dl_x(1+2*Nyw:2*(Nyw+Nyt)),dly(2),norm(u,2),aoa,Lam,dih,aoaf_Lt,aoaf_Rt,0);
@@ -310,6 +332,11 @@ toc
 %axis([0 9 0 0.55]);
 % surf(x,y,z,[G(1:2*Ny,34)';G(2*Ny+1:4*Ny,34)';G(4*Ny+1:6*Ny,34)';G(6*Ny+1:8*Ny,34)'])
 figure
+
+plot(linspace(0,tmax*dt*uinf/crw,tmax),Liftw)
+xlabel('time');ylabel('lift'),ylim([0,0.07]),xlim([0,tmax*dt*uinf/crw])
+
+figure
 surf(repmat(linspace(0,tmax*dt*uinf/crw,tmax),2*Ny,1),repmat(y(1,1:2*Ny),tmax,1)',cLnewv)
 xlabel('time');ylabel('span');zlabel('c_l');
 view(-150,15);
@@ -319,7 +346,6 @@ view(-150,15);
 
 % just for plot, t is the time you want to plot the contours
 t=5;
-
 
 sp(dp,xw,yw,zw,bw,bt,Nxw,Nyw,trw,Sw,Lam,dih,aoa,aoaf_Lw,aoaf_Rw,t,.8,0,0);
 
