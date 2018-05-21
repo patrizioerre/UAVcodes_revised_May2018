@@ -1,4 +1,4 @@
-function [cL,Lift,Drag,dp,d,roll,yaw]=force_calc(Nx,Ny,a,a_d,w_ind_drag,b,G,Gs,t,dt,S,dl_x,dly,uinf,aoa,Lam,dih,aoaf_L,aoaf_R,rudder) %codegen
+function [cL,Lift,Drag,dp,d,roll,yaw,L_panel]=force_calc(Nx,Ny,a,a_d,w_ind_drag,b,G,Gs,t,dt,S,dl_x,dly,uinf,aoa,Lam,dih,aoaf_L,aoaf_R,rudder) %codegen
 
 % velocity induced by the wake on a collocation point
 % for j direction (span wise) for the right half wing
@@ -207,7 +207,7 @@ F=sum(sum((dp.*repmat(dl_x,Nx,1)*dly)));
 
 % area of a strip
 Sc=dly*Nx*dl_x;
-
+L_panel=(dp.*repmat(dl_x,Nx,1)*dly).*cos(aoa).*cos(dih);
 L=sum(dp.*repmat(dl_x,Nx,1)*dly).*cos(aoa).*cos(dih);
 
 %% Lift
