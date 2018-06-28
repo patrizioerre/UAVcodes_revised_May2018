@@ -61,8 +61,10 @@ f5=sum(sum(times(f,fi5)))/area;
 f_surf=f1*fi1+f2*fi2+f3*fi3+f4*fi4+f5*fi5;
 % f_surf1=f11*fi1+f21*fi2+f31*fi3+f41*fi4+f51*fi5;
 
-figure(10)
-surf(x,y,f_surf)
+% figure(10)
+% surf(x,y,f_surf)
+
+
 % hold on
 % surf(x,y,f_surf1)
 end

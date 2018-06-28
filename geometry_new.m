@@ -1,4 +1,4 @@
-function [x,y,z,xcol,ycol,zcol,n,dl_x,dly,S,alpha,cr,dih]=geometry(AR,b,tr,Nx,Ny,Lam_pre,dih_pre,aoa_pre,aoaf_L,aoaf_R,w,length_coor)
+function [x,y,z,xcol,ycol,zcol,n,dl_x,dly,S,alpha,cr,dih,zdot]=geometry(AR,b,tr,Nx,Ny,Lam_pre,dih_pre,aoa_pre,aoaf_L,aoaf_R,length_coor,w,wdot)
 
 S=b^2/AR;                    % wing surface
 wl=b/cos(Lam_pre)/cos(dih_pre);      % span length normal to the unswept wing(length of two wings) %%%%%%%%%%%%%%%
@@ -75,18 +75,29 @@ xcol=x+0.5*repmat(dl_x,Nx,1)*cos(aoa_pre);
 zcol_pre=z_pre-0.5*repmat(dl_x,Nx,1)*sin(aoa_pre)*cos(dih_pre);
 ycol=y;
 
-
+if exist('w','var')==0
+           % length_coor=100;
+            w=zeros(length_coor);
+         else w=w;
+end
+        
+if exist('wdot','var')==0
+           % length_coor=100;
+            wdot=zeros(length_coor);
+         else wdot=wdot;
+         end
+ 
 y_struc=linspace(0,0.912,length_coor)';
 x_struc=linspace(0,0.30,length_coor)';
 
-[aoa_p,dih_p,z_p,zcol_p]=find_deformed(w,x_struc,y_struc,Nx,Ny);
+[aoa_p,dih_p,z_p,zcol_p,zdot]=find_deformed(w,x_struc,y_struc,Nx,Ny,wdot);
 
 
 alpha=[fliplr(aoa_p) aoa_p]+aoa_pre;
 dih=[fliplr(dih_p) dih_p]+dih_pre;
 z=[fliplr(z_p) z_p]+z_pre;
 zcol=[fliplr(zcol_p) zcol_p]+zcol_pre;
-
+zdot=[fliplr(zdot) zdot];
 
 
 
@@ -173,62 +184,141 @@ end
 %% used only for verification against 2D
 % alpha(Nx,:)=aoaf_L+aoa;
 
-%% normal vectors
-
-
-edger=[x(1,round(Ny+2))-x(1,round(Ny+1)) y(1,round(Ny+2))-y(1,round(Ny+1)) z(1,round(Ny+2))-z(1,round(Ny+1))];    % the c/4 vector line for the left half (+y)
-edgel=[x(1,1)-x(1,2) y(1,1)-y(1,2) z(1,1)-z(1,2)];                      % the c/4 vector line for the right half (-y)
-edgeb=[cr/Nx*cos(aoa_pre) 0 -cr/Nx*sin(aoa_pre)];                                 % root base section
-
-% right and left normal vectors
-nl=cross(edgel,edgeb)/norm(cross(edgel,edgeb));
-nr=cross(edgeb,edger)/norm(cross(edgeb,edger));
-
-%  normal to the pannels normal from -y to +y
-
-if rem(2*Ny,2)>0
-    n=repmat([repmat(nl',1,Ny-0.5) [sin(aoa_pre); 0 ;cos(aoa_pre)] repmat(nr',1,Ny-0.5)],1,Nx);
-else
-    n=repmat([repmat(nl',1,Ny) repmat(nr',1,Ny)],1,Nx);
+%% normal vectors 
+   % Rosatelli's modification
+   
+for j=1:Nx-1
+    
+    for i=1:Ny-1  
+    % edgers is the forward side of the panel point to tip
+    edgers(:,i+(j-1)*Ny) = [-x(j,i)+x(j,i+1) -y(j,i)+y(j,i+1) -z(j,i)+z(j,i+1)];
+    edgers(:,Ny*j)= [0 0.912/Ny -z(j,i+1)+dl_x(Ny)*(Nx-1-j)*sin(alpha(j,Ny))];
+    % edgers(:,Ny)= [x(j,i+1)-dl_x(Ny)*(Nx-1-j)*cos(alpha(j,Ny)) y(j,i+1)-0 z(j,i+1)-dl_x(Ny)*(Nx-1-j)*sin(alpha(j,Ny))];
+    
+    
+    % edgers is the left side of the panel point to LE
+    edgerc(:,i+(j-1)*Ny) = [-x(j,i)+x(j+1,i) -y(j,i)+y(j+1,i) -z(j,i)+z(j+1,i)]; %scrivi espresisone di segmenti chorwise
+    edgerc(:,Ny*j)= [-x(j,i+1)+dl_x(Ny)*(Nx-j)*cos(alpha(j,Ny)) 0 (-z(j,i+1)+dl_x(Ny)*(Nx-2-j)*sin(alpha(j,Ny)))*2];
+    
+%     n_r(:,i+Nx*(j-1))=cross(edgers(:,i+Nx*(j-1)),edgerc(:,i+Nx*(j-1)))/norm(cross(edgers(:,i+Nx*(j-1)),edgerc(:,i+Nx*(j-1))));
+    n_r(:,i)=cross(edgerc(:,i+(j-1)*Ny),edgers(:,i+(j-1)*Ny))/norm(cross(edgerc(:,i+(j-1)*Ny),edgers(:,i+(j-1)*Ny)));
+    n_r(:,Ny)=cross(edgerc(:,Ny*j),edgers(:,Ny*j))/norm(cross(edgerc(:,Ny*j),edgers(:,Ny*j)));
+    end
+    n_l=fliplr([n_r(1,:);-n_r(2,:);n_r(3,:)]);
+    n(:,1+2*Ny*(j-1):j*Ny*2)=[n_r n_l];
 end
+    
+
+% figure(1)
+% par=100
+% quiver3(z(1:3,:),par*[n(2,1:20);n(2,21:40);n(2,41:60)],par*[n(1,1:20);n(1,21:40);n(1,41:60)],[n(3,1:20);n(3,21:40);n(3,41:60)])
+% hold on 
+% surf(z(1:3,:))
+% 
+% figure(2)
+% [U,V,W]=surfnorm(z(1:3,:))
+% quiver3(z(1:3,:),1000*U,1000*V,W)
+% hold on
+% surf(z(1:3,:))
+
+
+% edger=[x(1,round(Ny+2))-x(1,round(Ny+1)) y(1,round(Ny+2))-y(1,round(Ny+1)) z(1,round(Ny+2))-z(1,round(Ny+1))];    % the c/4 vector line for the left half (+y)
+% edgel=[x(1,1)-x(1,2) y(1,1)-y(1,2) z(1,1)-z(1,2)];                      % the c/4 vector line for the right half (-y)
+% edgeb=[cr/Nx*cos(aoa_pre) 0 -cr/Nx*sin(aoa_pre)];                                 % root base section
+% 
+% % right and left normal vectors
+% nl=cross(edgel,edgeb)/norm(cross(edgel,edgeb));
+% nr=cross(edgeb,edger)/norm(cross(edgeb,edger));
+% 
+% %  normal to the pannels normal from -y to +y
+% 
+% if rem(2*Ny,2)>0
+%     n=repmat([repmat(nl',1,Ny-0.5) [sin(aoa_pre); 0 ;cos(aoa_pre)] repmat(nr',1,Ny-0.5)],1,Nx);
+% else
+%     n=repmat([repmat(nl',1,Ny) repmat(nr',1,Ny)],1,Nx);
+% end
 
 % don't need n for visualization
+% if rem(2*Ny,2)<=0
+%   for i=1:2*Ny  
+%     % effect of flap, note that from the TE row, any two points have the same
+%     % edge as the flaps. only the base edge changes....
+%     
+%     % Left
+%     
+%     mod_dl_xr=dl_x;
+%     mod_dl_xl=fliplr(mod_dl_xr);
+%     mod_dl_x=[mod_dl_xl mod_dl_xr];
+%     
+%  edgebf(i)=[mod_dl_x(i)*cos(alpha(Nx,i)) 0 -mod_dl_x(i)*sin(alpha(i))];
+%  
+%  edgelf(i)=[x(Nx,i)-x(Nx,i+1) y(Nx,i)-y(Nx,i+1) z(Nx,i)-z(Nx,i+1)];
+%   
+% 
+%  n(:,2*(Nx-1)*Ny+i)=cross(edgebf,edgelf)/norm(cross(edgebf,edgelf));
+%     
+% %  % Right
+% % 
+% %  edgebfr=[dl_x(2)*cos(alpha(Nx,2)) 0 -dl_x(2)*sin(alpha(Nx,2))];
+% %       
+% %  edgerf=[x(Nx,3)-x(Nx,4) y(Nx,3)-y(Nx,4) z(Nx,3)-z(Nx,4)];
+% %     
+% %     
+% %     %% Fontana
+% %     
+% %     
+% %         n(:,2*Nx*Ny-i+1)=cross(edgebf,edgelf)/norm(cross(edgebf,edgelf));
+% %         n(:,2*(Nx-1)*Ny+i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
+%     end
+%     
+%     %% used only for verification against 2D
+%     %     for i=2*(Nx-1)*Ny+1:2*Nx*Ny
+%     %      n(:,i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
+%     %     end
+% end
 if rem(2*Ny,2)<=0
-    
+  for i=1:Ny  
     % effect of flap, note that from the TE row, any two points have the same
     % edge as the flaps. only the base edge changes....
     
-    % Left
+    % Right if looking plane from front
+ 
+ edgebfr(:,i)=[dl_x(i)*cos(alpha(Nx,i)) 0 -dl_x(i)*sin(alpha(Nx,i))];
+ 
+ edgerf(:,i)=[x(Nx,i)-x(Nx,i+1) -y(Nx,i)+y(Nx,i+1) z(Nx,i)-z(Nx,i+1)];
+  
+ n(:,2*(Nx-1)*Ny+i)=cross(edgebfr(:,i),edgerf(:,i))/norm(cross(edgebfr(:,i),edgerf(:,i)));
+
+ 
+  end
+ %  Left if looking plane from front
+  for i=Ny+1:2*Ny  
+    % effect of flap, note that from the TE row, any two points have the same
+    % edge as the flaps. only the base edge changes....
     
- edgebf=[dl_x(2*Ny-1)*cos(alpha(Nx,2*Ny-1)) 0 -dl_x(2*Ny-1)*sin(alpha(Nx,2*Ny-1))];
+    % Right if looking plane from front
+ 
+ edgebfl(:,i)=[dl_x(i)*cos(alpha(Nx,i)) 0 -dl_x(i)*sin(alpha(Nx,i))];
+ 
+ edgelf(:,i)=[x(Nx,i)-x(Nx,i-1) y(Nx,i)-y(Nx,i-1) z(Nx,i)-z(Nx,i-1)];
+  
+ n(:,2*(Nx-1)*Ny+i)=cross(edgebfl(:,i),edgelf(:,i))/norm(cross(edgebfl(:,i),edgelf(:,i)));
+
+ 
+  end
 
     
-    edgelf=[x(Nx,Ny+3)-x(Nx,Ny+2) ...
-        y(Nx,Ny+3)-y(Nx,Ny+2) ...
-        z(Nx,Ny+3)-z(Nx,Ny+2)];
-    %    n(:,2*Nx*Ny-1)=cross(edgebf,edgelf)/norm(cross(edgebf,edgelf));
-    
-    % Right
 
-  edgebfr=[dl_x(2)*cos(alpha(Nx,2)) 0 -dl_x(2)*sin(alpha(Nx,2))];
-      
-    
-    edgerf=[x(Nx,3)-x(Nx,4) ...
-        y(Nx,3)-y(Nx,4) ...
-        z(Nx,3)-z(Nx,4)];
-    %    n(:,2*(Nx-1)*Ny+2)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
-    
-    %% Fontana
-    
-    for i=1:Nf
-        n(:,2*Nx*Ny-i+1)=cross(edgebf,edgelf)/norm(cross(edgebf,edgelf));
-        n(:,2*(Nx-1)*Ny+i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
-    end
+%     %% Fontana
+%     
+%     
+%         n(:,2*Nx*Ny-i+1)=cross(edgebf,edgelf)/norm(cross(edgebf,edgelf));
+%         n(:,2*(Nx-1)*Ny+i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
+ 
     
     %% used only for verification against 2D
     %     for i=2*(Nx-1)*Ny+1:2*Nx*Ny
     %      n(:,i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
     %     end
 end
-
 end

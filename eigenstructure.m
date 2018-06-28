@@ -1,6 +1,6 @@
 close all
 
-length_coor=100;
+length_coor=50;
 X=[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;...
    0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15];
 X(2,:)=2*X(2,:);
@@ -390,11 +390,11 @@ fi3_c=sqrt(1/trapz(y,trapz(x,rho*mode3s.*mode3s,2)))*mode3s;
 fi4_c=sqrt(1/trapz(y,trapz(x,rho*mode4s.*mode4s,2)))*mode4s;
 fi5_c=sqrt(1/trapz(y,trapz(x,rho*mode5s.*mode5s,2)))*mode5s;
 
-fi4=-(eigvec(1,1)*fi1_c+eigvec(2,1)*fi2_c+eigvec(3,1)*fi3_c+eigvec(4,1)*fi4_c+eigvec(5,1)*fi5_c);
-fi1=-(eigvec(1,2)*fi1_c+eigvec(2,2)*fi2_c+eigvec(3,2)*fi3_c+eigvec(4,2)*fi4_c+eigvec(5,2)*fi5_c);
-fi3=eigvec(1,3)*fi1_c+eigvec(2,3)*fi2_c+eigvec(3,3)*fi3_c+eigvec(4,3)*fi4_c+eigvec(5,3)*fi5_c;
-fi2=eigvec(1,4)*fi1_c+eigvec(2,4)*fi2_c+eigvec(3,4)*fi3_c+eigvec(4,4)*fi4_c+eigvec(5,4)*fi5_c;
-fi5=eigvec(1,5)*fi1_c+eigvec(2,5)*fi2_c+eigvec(3,5)*fi3_c+eigvec(4,5)*fi4_c+eigvec(5,5)*fi5_c;
+fi4=(eigvec(1,1)*fi1_c+eigvec(2,1)*fi2_c+eigvec(3,1)*fi3_c+eigvec(4,1)*fi4_c+eigvec(5,1)*fi5_c);
+fi3=(eigvec(1,2)*fi1_c+eigvec(2,2)*fi2_c+eigvec(3,2)*fi3_c+eigvec(4,2)*fi4_c+eigvec(5,2)*fi5_c);
+fi5=eigvec(1,3)*fi1_c+eigvec(2,3)*fi2_c+eigvec(3,3)*fi3_c+eigvec(4,3)*fi4_c+eigvec(5,3)*fi5_c;
+fi1=-(eigvec(1,4)*fi1_c+eigvec(2,4)*fi2_c+eigvec(3,4)*fi3_c+eigvec(4,4)*fi4_c+eigvec(5,4)*fi5_c);
+fi2=-(eigvec(1,5)*fi1_c+eigvec(2,5)*fi2_c+eigvec(3,5)*fi3_c+eigvec(4,5)*fi4_c+eigvec(5,5)*fi5_c);
 
 
 

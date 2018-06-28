@@ -1,0 +1,1 @@
+this version featured for the first time normal calculations for each panel (in geometry_new which is also used in the directory patrizio_unsteady_with_velocity_change_numerical_integration) and also some other tweaks in loop.m as some useless loops discarded and total lift tracking in time
