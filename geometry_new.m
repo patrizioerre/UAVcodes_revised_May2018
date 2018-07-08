@@ -189,14 +189,14 @@ end
    
 for j=1:Nx-1
     
-    for i=1:Ny-1  
-    % edgers is the forward side of the panel point to tip
+    for i=1:Ny-1           
+    % edgers is the forward side of the panel pointing to root
     edgers(:,i+(j-1)*Ny) = [-x(j,i)+x(j,i+1) -y(j,i)+y(j,i+1) -z(j,i)+z(j,i+1)];
-    edgers(:,Ny*j)= [0 0.912/Ny -z(j,i+1)+dl_x(Ny)*(Nx-1-j)*sin(alpha(j,Ny))];
+    edgers(:,Ny*j)= [0 b/Ny -z(j,i+1)+dl_x(Ny)*(Nx-1-j)*sin(alpha(j,Ny))];
     % edgers(:,Ny)= [x(j,i+1)-dl_x(Ny)*(Nx-1-j)*cos(alpha(j,Ny)) y(j,i+1)-0 z(j,i+1)-dl_x(Ny)*(Nx-1-j)*sin(alpha(j,Ny))];
     
     
-    % edgers is the left side of the panel point to LE
+    % edgerc is the left side of the panel pointing to TE
     edgerc(:,i+(j-1)*Ny) = [-x(j,i)+x(j+1,i) -y(j,i)+y(j+1,i) -z(j,i)+z(j+1,i)]; %scrivi espresisone di segmenti chorwise
     edgerc(:,Ny*j)= [-x(j,i+1)+dl_x(Ny)*(Nx-j)*cos(alpha(j,Ny)) 0 (-z(j,i+1)+dl_x(Ny)*(Nx-2-j)*sin(alpha(j,Ny)))*2];
     
@@ -276,35 +276,36 @@ end
 %     %      n(:,i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
 %     %     end
 % end
-if rem(2*Ny,2)<=0
-  for i=1:Ny  
+%if rem(2*Ny,2)<=0
+  for i=1:Ny-1  
     % effect of flap, note that from the TE row, any two points have the same
     % edge as the flaps. only the base edge changes....
     
     % Right if looking plane from front
- 
+ % edgebfr is the chordwise side of a panel in the last row pointing to TE
  edgebfr(:,i)=[dl_x(i)*cos(alpha(Nx,i)) 0 -dl_x(i)*sin(alpha(Nx,i))];
- 
- edgerf(:,i)=[x(Nx,i)-x(Nx,i+1) -y(Nx,i)+y(Nx,i+1) z(Nx,i)-z(Nx,i+1)];
-  
- n(:,2*(Nx-1)*Ny+i)=cross(edgebfr(:,i),edgerf(:,i))/norm(cross(edgebfr(:,i),edgerf(:,i)));
-
- 
+ edgebfr(:,Ny)=[dl_x(i)*cos(alpha(Nx,Ny)) 0 -dl_x(i)*sin(alpha(Nx,Ny))];
+  % edgerf is the rear side of a panel in the last row pointing to root
+ edgerf(:,i)=[-x(Nx,i)+x(Nx,i+1) -y(Nx,i)+y(Nx,i+1) -z(Nx,i)+z(Nx,i+1)];
+ edgerf(:,Ny)=[0 b/Ny/2 -z(Nx,i+1)-dl_x(i+1)*sin(aoa_pre)]; 
+ n_rf(:,i)=cross(edgebfr(:,i),edgerf(:,i))/norm(cross(edgebfr(:,i),edgerf(:,i)));
+ n_rf(:,Ny)=cross(edgebfr(:,Ny),edgerf(:,Ny))/norm(cross(edgebfr(:,Ny),edgerf(:,Ny)));
   end
+ n_lf=fliplr([n_rf(1,:);-n_rf(2,:);n_rf(3,:)]);
+ n(:,2*Ny*(Nx-1)+1:Nx*Ny*2)=[n_rf n_lf];
  %  Left if looking plane from front
   for i=Ny+1:2*Ny  
     % effect of flap, note that from the TE row, any two points have the same
     % edge as the flaps. only the base edge changes....
-    
     % Right if looking plane from front
  
+
  edgebfl(:,i)=[dl_x(i)*cos(alpha(Nx,i)) 0 -dl_x(i)*sin(alpha(Nx,i))];
- 
+
  edgelf(:,i)=[x(Nx,i)-x(Nx,i-1) y(Nx,i)-y(Nx,i-1) z(Nx,i)-z(Nx,i-1)];
   
  n(:,2*(Nx-1)*Ny+i)=cross(edgebfl(:,i),edgelf(:,i))/norm(cross(edgebfl(:,i),edgelf(:,i)));
 
- 
   end
 
     
@@ -320,5 +321,5 @@ if rem(2*Ny,2)<=0
     %     for i=2*(Nx-1)*Ny+1:2*Nx*Ny
     %      n(:,i)=cross(edgerf,edgebfr)/norm(cross(edgebfr,edgerf));
     %     end
-end
+%end
 end

@@ -12,7 +12,7 @@
 % x=linspace(0,0.3,length_coor)';
 
 % function [aoa,dih,panel_center_z]=find_deformed(w,x,y,Nx,Ny)
-function [aoa,dih,z_p,zcol_p,extrd]=find_deformed(w,x,y,Nx,Ny,wdot)
+function [aoa,dih,z_p,zcol_p,extrd]=find_deformed(w,x_struc,y_struc,Nx,Ny,wdot)
 %define grid points of aerodynamic panels to extrapolate displacement field 
 x_ext_v1=linspace(0,0.3,Nx+1);
 x_ext_v=linspace(0,0.3,Nx);
@@ -24,11 +24,11 @@ y_ext_v2=linspace(0,0.912,2*Ny+1);
 [y_ext,x_ext1]=meshgrid(y_ext_v,x_ext_v1);
 [y_ext2,x_ext2]=meshgrid(y_ext_v2,x_ext_v2);
 [y_extd,x_extd]=meshgrid(y_ext_v,x_ext_v);
-x=x(1:size(w,1));
-y=y(1:size(w,1));
+x=x_struc(1:size(w,1));
+y=y_struc(1:size(w,1));
 
 %extrapolate displacement field over the grid
-extry1=griddata(x,y,w,x_ext,y_ext1);
+extry1=griddata(x,y,w,x_ext,y_ext1,'cubic');
 extrx1=griddata(x,y,w,x_ext1,y_ext);
 extr2=griddata(x,y,w,x_ext2,y_ext2);
 extrd=griddata(x,y,wdot,x_extd,y_extd);
@@ -49,7 +49,7 @@ for j=1:length(extrdiffy(i,:))
 
  if abs(extrdiffy(i,j))<0.00001
    dih(i,j)=0;
- else dih(i,j)=asin(extrdiffy(i,j));
+ else dih(i,j)=atan(extrdiffy(i,j));
  end
  
 end
@@ -73,7 +73,7 @@ for j=1:length(extrdiffx(:,i))
 
   if abs(extrdiffx(j,i))<0.00001
     aoa(j,i)=0;
-  else aoa(j,i)=-asin(extrdiffx(j,i));
+  else aoa(j,i)=-atan(extrdiffx(j,i));
     end
     
 end

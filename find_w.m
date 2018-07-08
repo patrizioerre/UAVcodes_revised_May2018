@@ -5,11 +5,11 @@ thickness=0.0169;
 density=76.3;
 rho=density*thickness;
 
-zita1=0.01;
-zita2=0.01;
-zita3=0.01;
-zita4=0.01;
-zita5=0.01;
+zita1=0.2/100;
+% zita2=0.01;
+% zita3=0.01;
+% zita4=0.01;
+% zita5=0.01;
 
 lambda1=(30*2*pi)^2;
 lambda2=(190*2*pi)^2;
@@ -22,7 +22,8 @@ lambda5=(617*2*pi)^2;
 [f1,f2,f3,f4,f5]=load_projection_prove(fp1,fi1,fi2,fi3,fi4,fi5,length_coor);
 
 
-tspan = [0 100*time_step];
+% tspan = [0 100*time_step];
+tspan = [0 10000*time_step];
 
 w01 = u01;
 v01 = u01d;
@@ -45,10 +46,10 @@ W05 = [w05 ; v05];
 % [t,W] = ode45(@syst_diff1, tspan, W0);
 
 [t1,W1] = ode45(@(t1,W1) syst_diff1(t1,W1,lambda1,zita1,f1), tspan, W01);
-[t2,W2] = ode45(@(t2,W2) syst_diff2(t2,W2,lambda2,zita2,f2), tspan, W02);
-[t3,W3] = ode45(@(t3,W3) syst_diff3(t3,W3,lambda3,zita3,f3), tspan, W03);
-[t4,W4] = ode45(@(t4,W4) syst_diff4(t4,W4,lambda4,zita4,f4), tspan, W04);
-[t5,W5] = ode45(@(t5,W5) syst_diff5(t5,W5,lambda5,zita5,f5), tspan, W05);
+[t2,W2] = ode45(@(t2,W2) syst_diff2(t2,W2,lambda2,zita1,f2,lambda1), tspan, W02);
+[t3,W3] = ode45(@(t3,W3) syst_diff3(t3,W3,lambda3,zita1,f3,lambda1), tspan, W03);
+[t4,W4] = ode45(@(t4,W4) syst_diff4(t4,W4,lambda4,zita1,f4,lambda1), tspan, W04);
+[t5,W5] = ode45(@(t5,W5) syst_diff5(t5,W5,lambda5,zita1,f5,lambda1), tspan, W05);
 
 w1=interp1(t1,W1(:,1),time_step);
 w2=interp1(t2,W2(:,1),time_step);
