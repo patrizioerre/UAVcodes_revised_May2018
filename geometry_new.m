@@ -1,4 +1,4 @@
-function [x,y,z,xcol,ycol,zcol,n,dl_x,dly,S,alpha,cr,dih,zdot]=geometry(AR,b,tr,Nx,Ny,Lam_pre,dih_pre,aoa_pre,aoaf_L,aoaf_R,length_coor,w,wdot)
+function [x,y,z,xcol,ycol,zcol,n,dl_x,dly,S,alpha,cr,dih,zdot,f_points]=geometry(AR,b,tr,Nx,Ny,Lam_pre,dih_pre,aoa_pre,aoaf_L,aoaf_R,length_coor,k,phi,w,wdot)
 
 S=b^2/AR;                    % wing surface
 wl=b/cos(Lam_pre)/cos(dih_pre);      % span length normal to the unswept wing(length of two wings) %%%%%%%%%%%%%%%
@@ -123,8 +123,8 @@ Nf=round(1*Ny);
     % Rosatelli's modification: being alpha the matrix of panels AOA I just
     % modified it changing the rear panel (streamwise) AOA; I suppose first 
     % columns of alpha are related to the tip of the left wing
-    k=0.1; %spatial frequency
-    phi=315; %spatial displ
+%     k=0; %spatial frequency
+%     phi=0; %spatial displ
     f=@(y) 0.02*sin(k*(2*pi)*y/0.912+deg2rad(phi));
     f_points=eval(subs(f,linspace(0,b/2,Ny)));
     for k=1:length(f_points)

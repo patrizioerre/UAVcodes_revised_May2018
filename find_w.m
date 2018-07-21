@@ -1,89 +1,139 @@
-function [w,wdot,u01,u02,u03,u04,u05,u01d,u02d,u03d,u04d,u05d]=find_w(L_panel,fi1,fi2,fi3,fi4,fi5,u01,u02,u03,u04,u05,u01d,u02d,u03d,u04d,u05d,length_coor,time_step)
+function [w,wdot,u01,u02,u03,u04,u05,u01d,u02d,u03d,u04d,u05d]...
+ = find_w(L_panel,fi1,fi2,fi3,fi4,fi5,u01,u02,u03,u04,u05,u01d,u02d,u03d,u04d,u05d,length_coor,time_step)
+
+% SYNTAX
+%        [x, xdot, x2dot] = newmarkint(M, C, K, R, x0, xdot0, t, varargin)
+% INPUT
+%        [M] :       System Mass              [n,n]
+%        [C] :       System Damping           [n,n]
+%        [K] :       System Stiffness         [n,n]
+%        [R] :       Externally Applied Load  [n,nt]
+%        [x0] :      Initial Position         [n,1]
+%        [xdot0] :   Initial Velocity         [n,1]
+%        [t] :       Time Vector              [1,nt]
+%        [varargin]: Options
+%
+% OUTPUT
+%       [x]:        Displacemente Response   [n,nt]
+%       [xdot]:     Velocity                 [n,nt]
+%       [x2dot]:    Acceleration             [n,nt]
+%
+%
+%  nt = number of time steps
+%  n = number of nodes
+% The options include changing the value of the "alfa" and "beta"
+% coefficient which appear in the formulation of the method. By default
+% these values are set to alfa = 1/2 and beta = 1/4.
+%
+% EXAMPLE
+% To change nemark's coefficients, say to alfa = 1/3 and beta = 1/5, 
+% the syntax is:
+%       [u, udot, u2dot] = newmark_int(t,p,u0,udot0,m,k,xi, 1/3, 1/5)  
+%
+%-------------------------------------------------------------------------
+
+    alfa = 1 / 2;
+    beta = 1 / 4;
+
 format long
 
-thickness=0.0169;
-density=76.3;
+thickness=0.005;
+density=38.15;
 rho=density*thickness;
 
-zita1=0.2/100;
-% zita2=0.01;
-% zita3=0.01;
-% zita4=0.01;
-% zita5=0.01;
+zita1=0.02;
+zita2=0.01;
+zita3=0.01;
+zita4=0.01;
+zita5=0.01;
 
-lambda1=(30*2*pi)^2;
-lambda2=(190*2*pi)^2;
-lambda3=(210*2*pi)^2;
-lambda4=(550*2*pi)^2;
-lambda5=(617*2*pi)^2;
+lambda1=(11.641*2*pi)^2;
+lambda2=(81.496*2*pi)^2;
+lambda3=(72.850*2*pi)^2;
+lambda4=(203.70*2*pi)^2;
+lambda5=(240.70*2*pi)^2;
+
 
 [fp1]=load_interp(L_panel,length_coor);
 
-[f1,f2,f3,f4,f5]=load_projection_prove(fp1,fi1,fi2,fi3,fi4,fi5,length_coor);
+[f1,f2,f3,f4,f5]=load_projection_prove(fp1,fi1,fi2,fi3,fi4,fi5,length_coor,density,thickness);
 
+R1=[f1 f2 f3 f4 f5]';
 
-% tspan = [0 100*time_step];
-tspan = [0 10000*time_step];
+M=[1 0 0 0 0;0 1 0 0 0;0 0 1 0 0;0 0 0 1 0;0 0 0 0 1];
 
-w01 = u01;
-v01 = u01d;
-w02 = u02;
-v02 = u02d;
-w03 = u03;
-v03 = u03d;
-w04 = u04;
-v04 = u04d;
-w05 = u05;
-v05 = u05d;
+K=[lambda1 0 0 0 0;0 lambda2 0 0 0;0 0 lambda3 0 0;0 0 0 lambda4 0;0 0 0 0 lambda5];
 
-W01 = [w01 ; v01];
-W02 = [w02 ; v02];
-W03 = [w03 ; v03];
-W04 = [w04 ; v04];
-W05 = [w05 ; v05];
+C=[2*sqrt(lambda1)*zita1 0 0 0 0;0 2*sqrt(lambda2)*zita1 0 0 0;0 0 2*sqrt(lambda1)*zita1 0 0;0 0 0 2*sqrt(lambda1)*zita1 0;0 0 0 0 2*sqrt(lambda1)*zita1];
 
-%[t,W] = ode45(@(v,w) -3*v-4*w, tspan, w0);
-% [t,W] = ode45(@syst_diff1, tspan, W0);
+x0=[u01 u02 u03 u04 u05]';
 
-[t1,W1] = ode45(@(t1,W1) syst_diff1(t1,W1,lambda1,zita1,f1), tspan, W01);
-[t2,W2] = ode45(@(t2,W2) syst_diff2(t2,W2,lambda2,zita1,f2,lambda1), tspan, W02);
-[t3,W3] = ode45(@(t3,W3) syst_diff3(t3,W3,lambda3,zita1,f3,lambda1), tspan, W03);
-[t4,W4] = ode45(@(t4,W4) syst_diff4(t4,W4,lambda4,zita1,f4,lambda1), tspan, W04);
-[t5,W5] = ode45(@(t5,W5) syst_diff5(t5,W5,lambda5,zita1,f5,lambda1), tspan, W05);
-
-w1=interp1(t1,W1(:,1),time_step);
-w2=interp1(t2,W2(:,1),time_step);
-w3=interp1(t3,W3(:,1),time_step);
-w4=interp1(t4,W4(:,1),time_step);
-w5=interp1(t5,W5(:,1),time_step);
-
-u01=w1;
-u02=w2;
-u03=w3;
-u04=w4;
-u05=w5;
-
-
-w1d=interp1(t1,W1(:,2),time_step);
-w2d=interp1(t2,W2(:,2),time_step);
-w3d=interp1(t3,W3(:,2),time_step);
-w4d=interp1(t4,W4(:,2),time_step);
-w5d=interp1(t5,W5(:,2),time_step);
-
-u01d=w1d;
-u02d=w2d;
-u03d=w3d;
-u04d=w4d;
-u05d=w5d;
-
-w = ( w1*fi1 +w2*fi2 +w3*fi3 +w4*fi4 +w5*fi5 )*rho;
-
-wdot = ( w1d*fi1 +w2d*fi2 +w3d*fi3 +w4d*fi4 +w5d*fi5 )*rho;
+xdot0=[u01d u02d u03d u04d u05d]';
 
 
 
-% plot(t1,W1(:,1))
-%[w,v] = ode45(@(w,v) v, tspan, w0d);
+dt = time_step/10;
+t=linspace(0,time_step,10);
+nt = fix((t(end)- t(1)) / dt);
+n = length(M);
 
+% Constants used in Newmark's integration
+a1 = alfa / (beta * dt);
+a2 = 1 / (beta * dt ^ 2);
+a3 = 1 / (beta * dt);
+a4 = alfa / beta;
+a5 = 1/(2 * beta);
+a6 = (alfa / (2 * beta) - 1) * dt;
+
+
+x = zeros(n,nt);
+xdot = zeros(n,nt);
+x2dot = zeros(n,nt);
+
+% Initial Conditions
+x(:, 1) = x0;
+xdot(:, 1) = xdot0;
+R = [R1 zeros(n,nt)];
+x2dot(:,1) = M \ (R(:, 1) - C * xdot(:, 1) - K * x(:, 1)) ;
+
+Kcap = K + a1 * C + a2 * M;
+
+a = a3 * M + a4 * C;
+b = a5 * M + a6 * C;
+
+% Time step starts
+for i = 1 : nt
+    delR = R(:, i) + a * xdot(:, i) + b * x2dot(:, i);
+    delx = Kcap \ delR ;
+    delxdot = a1 * delx - a4 * xdot(:, i) - a6 * x2dot(:, i);
+    delx2dot = a2 * delx - a3 * xdot(:, i) - a5 * x2dot(:, i);
+    x(:, i + 1) = x(:, i) + delx;
+    xdot(:, i + 1) = xdot(:, i) + delxdot;
+    x2dot(:, i + 1) = x2dot(:, i) + delx2dot;
 end
 
+u01=x(1,end);
+u02=x(2,end);
+u03=x(3,end);
+u04=x(4,end);
+u05=x(5,end);
+u01d=xdot(1,end);
+u02d=xdot(2,end);
+u03d=xdot(3,end);
+u04d=xdot(4,end);
+u05d=xdot(5,end);
+
+
+% for i=1:size(x(1,:),2)
+%     vert_displ1(:,:,i) = ( x(1,i)*fi1  )*rho;
+%     %vert_displ(:,:,i) = ( W1(i,1)*fi1 +W2(i,1)*fi2 +W3(i,1)*fi3 +W4(i,1)*fi4 +W5(i,1)*fi5 )*rho;
+%     %wdot(:,:,i) = ( W1(i,2)*fi1 +W2(i,2)*fi2 +W3(i,2)*fi3 +W4(i,2)*fi4 +W5(i,2)*fi5 )*rho;
+%     
+%     disp(i)=vert_displ1(length_coor,length_coor/2,i);
+% end
+
+w = ( x(1,end)*fi1 +x(2,end)*fi2 +x(3,end)*fi3 +x(4,end)*fi4 +x(5,end)*fi5 )*rho;
+
+wdot = ( xdot(1,end)*fi1 +xdot(2,end)*fi2 +xdot(3,end)*fi3 +xdot(4,end)*fi4 +xdot(5,end)*fi5 )*rho;
+
+end

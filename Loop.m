@@ -17,16 +17,17 @@ trw=1;trt=0;trr=0;        % taper ratio
 Lam=degtorad(0);             % sweep angle, backward swept, positive
 dih=degtorad(0);             % dihedral angle defined at the c/4
 aoa=degtorad(5);             % angle of attack
-uinf=275;                      % incidence velocity
+uinf=23;                      % incidence velocity
 u=uinf*[1 0 0];              % incidence velocity vector
-
+k=0;
+phi=0;
 aoaf_Lw=degtorad(0);aoaf_Lt=degtorad(0);  % left (-y) and right (+y) is looking from aft
 aoaf_Rw=degtorad(0);aoaf_Rt=degtorad(0);
 aoar=degtorad(0);
 %% Initial geometry of the UAV
 
 % wing
-[xw,yw,zw,xcolw,ycolw,zcolw,nw,dl_xw,dlyw,Sw,alphaw,crw,~,~]=geometry_new(ARw,bw,trw,Nxw,Nyw,Lam,dih,aoa,aoaf_Lw,aoaf_Rw,length_coor);
+[xw,yw,zw,xcolw,ycolw,zcolw,nw,dl_xw,dlyw,Sw,alphaw,crw,~,~,f_points]=geometry_new(ARw,bw,trw,Nxw,Nyw,Lam,dih,aoa,aoaf_Lw,aoaf_Rw,length_coor,k,phi);
 
 % tail
 % I set aoa equal to zero for tail
@@ -78,7 +79,7 @@ t=1;dt=1;
 %% Wake extention from TE of physical surfaces
 
 %time step
-dt=0.4*min(dl_xw)*Nxw/uinf;   %%%%%%%%%%%%%%%%%%%%%% 1/4
+dt=0.1*min(dl_xw)*Nxw/uinf;   %%%%%%%%%%%%%%%%%%%%%% 1/4
 
 % size of the wake panels
 dlw=dt*uinf;
@@ -180,7 +181,7 @@ for t=1:tmax
          else w=w;
          end
         
-        [x,y,z,xcol,ycol,zcol,n,dl_x,dly,S,alpha,cr,dih,zdot]=geometry_new(ARw,bw,trw,Nxw,Nyw,Lam1,dih1,aoa1,aoaf_Lw,aoaf_Rw,length_coor,w,wdot);
+        [x,y,z,xcol,ycol,zcol,n,dl_x,dly,S,alpha,cr,dih,zdot]=geometry_new(ARw,bw,trw,Nxw,Nyw,Lam1,dih1,aoa1,aoaf_Lw,aoaf_Rw,length_coor,k,phi,w,wdot);
         
         % here we need to find Am_wing matrix with new geometry, you should
         % send in the new geometry and angles: Lam,dih,aoa which basically
@@ -360,12 +361,13 @@ for t=1:tmax
     title(t)
     plot(t1,disp)
     
-    wsname = sprintf('ws_U=%d_dt=%d_wakeL=%d_Nx=%d.mat', uinf, dt, wake_length*dlw, Nxw);
+	if rem(t,10)==0
+    wsname = sprintf('ws_U=%d_dt=%d_wakeL=%d_Nx=%d_k=%_phi=%d.mat', uinf, dt, wake_length*dlw, Nxw, k, phi);
     save(wsname,'ws')
     
-    dispname = sprintf('disp_U=%d_dt=%d_wakeL=%d_Nx=%d.mat', uinf, dt, wake_length*dlw, Nxw);
+    dispname = sprintf('disp_U=%d_dt=%d_wakeL=%d_Nx=%d_k=%_phi=%d.mat', uinf, dt, wake_length*dlw, Nxw, k, phi);
     save(dispname,'disp')
-        
+        end
         
     %[cLnewvt(:,t),Liftt,Dragt,dpt(:,:,t),~,rollt,yawt]=force_calc(Nxt,Nyt,a(:,1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt),a_d(:,1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt),w_ind_drag(1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt),bt,G(1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt,:),Gs(1+2*Nxw*Nyw:2*Nxw*Nyw+2*Nxt*Nyt,1),t,dt,St,dl_x(1+2*Nyw:2*(Nyw+Nyt)),dly(2),norm(u,2),aoa,Lam,dih,aoaf_Lt,aoaf_Rt,0);
     

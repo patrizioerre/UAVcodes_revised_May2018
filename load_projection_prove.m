@@ -1,5 +1,5 @@
 
-function [f1,f2,f3,f4,f5]=load_projection_prove(fp1,fi1,fi2,fi3,fi4,fi5,length_coor)
+function [f1,f2,f3,f4,f5]=load_projection_prove(fp1,fi1,fi2,fi3,fi4,fi5,length_coor,density,thickness)
 %load definition
 % 
 % length_coor=200;
@@ -27,7 +27,7 @@ fp=zeros(length_coor);
 % fp=load_interp(L_panel,x,y)
 
 fp=fp1;
-f=fp/(76.3*0.0169);
+f=fp/(density*thickness);
 
 
 %load projection on eigenfunctions

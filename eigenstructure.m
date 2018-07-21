@@ -1,3 +1,4 @@
+%function[fi1,fi2,fi3,fi4,fi5]=eigenstructure(length_coor)
 close all
 
 length_coor=50;
@@ -239,9 +240,11 @@ mode5s=mode5n./max(max(abs(mode5n)));
 y=linspace(0,0.912,length_coor)';
 x=linspace(0,0.3,length_coor)';
 
-D=2252;
-density=76.3;
-thickness=0.0169;
+E=5.1e9;
+density=38.15;
+thickness=0.005;
+nu=0.1;
+D=(E*thickness^3)/(12*(1-nu));
 rho=density*thickness;
 
 
@@ -404,5 +407,5 @@ lambda3=lambda(3,3);
 lambda4=lambda(1,1);
 lambda5=lambda(5,5);
 
-
+%end
 
