@@ -1,7 +1,7 @@
 % simplified unsteady 3D wing lifting line method by B. Davoudi
 % Aerospace Engineering Department, University of Michigan 5/8/2018
 % updated to incorporate the rudder 9/7/2017
-function [G,Am_wing,A,a,a_d,w_ind_drag]=fast_steady_tail_rudder_patrizio(x,y,z,xcol,ycol,zcol,n,dl_x,dly,dlw,Nxw,Nxt,Nxr,Nyw,Nyt,Nyr,u,alpha,Lam,dih,b) %codegen
+function [G,Am_wing,A,a,a_d,w_ind_drag]=fast_steady_tail_rudder_patrizio(x,y,z,xcol,ycol,zcol,n,dl_x,dly,dlw,Nxw,Nxt,Nxr,Nyw,Nyt,Nyr,u,alpha,Lam,dih,b,zdot) %codegen
 % genrating the wake for a steady flight
 % finding the steady solution with the panel method
 
@@ -150,8 +150,12 @@ Am_wing=inv(Awing+Awake_first_wake_panel);
 
 % steady case
 % Am_wing=inv(Awing);
+for i=1:size(zdot,1)
+    U(3,(1+(i-1)*size(zdot,2)):(i*size(zdot,2)))=zdot(i,1:size(zdot,2));
+end
 
-U=repmat(u',1,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr);
+U(1,:)=u(1);
+%U=repmat(u',1,2*Nxw*Nyw+2*Nxt*Nyt+Nxr*Nyr);
 
 RHS=dot(-U,n)';
 

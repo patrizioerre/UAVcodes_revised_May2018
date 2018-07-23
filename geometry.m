@@ -95,11 +95,11 @@ for i=1:Nf
 %  new way -- only collocation points will be affected
 
      % left
-     xcol(Nx,i)=x(Nx,i)+0.5*dl_x(i)*cos(aoaf_L);
-     zcol(Nx,i)=z(Nx,i)-0.5*dl_x(i)*sin(aoaf_L)*cos(dih);
+     xcol(Nx,i)=x(Nx,i)+0.5*dl_x(i)*cos(alpha(Nx,i));
+     zcol(Nx,i)=z(Nx,i)-0.5*dl_x(i)*sin(alpha(Nx,i))*cos(dih);
      % right
-     xcol(Nx,2*Ny-i+1)=x(Nx,2*Ny-i+1)+0.5*dl_x(2*Ny-i+1)*cos(aoaf_R);
-     zcol(Nx,2*Ny-i+1)=z(Nx,2*Ny-i+1)-0.5*dl_x(2*Ny-i+1)*sin(aoaf_R)*cos(dih);
+     xcol(Nx,2*Ny-i+1)=x(Nx,2*Ny-i+1)+0.5*dl_x(2*Ny-i+1)*cos(alpha(Nx,i));
+     zcol(Nx,2*Ny-i+1)=z(Nx,2*Ny-i+1)-0.5*dl_x(2*Ny-i+1)*sin(alpha(Nx,i))*cos(dih);
  
 
 %  old way
